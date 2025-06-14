@@ -37,7 +37,7 @@ jobs:
         run: |
           LOWER_REPO=$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
           echo "LOWER_REPO=$LOWER_REPO" >> $GITHUB_ENV
-          docker build -t ghcr.io/${LOWER_REPO}:${TEST_TAG} open-webui
+          docker build -t ghcr.io/${LOWER_REPO}:${TEST_TAG} .
 
       - name: Start container for tests
         run: |
