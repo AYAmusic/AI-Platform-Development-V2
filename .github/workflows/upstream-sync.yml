@@ -52,7 +52,7 @@ jobs:
 
       - name: Run backend progress-bar integration tests
         run: |
-          pip install -r requirements.txt pytest pytest-asyncio aiohttp
+          pip install pytest pytest-asyncio aiohttp
           pytest -q test_progress_bar_integration.py
 
       - name: Stop and remove container
