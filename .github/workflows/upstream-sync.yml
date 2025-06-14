@@ -50,8 +50,10 @@ jobs:
             if curl -sSf http://localhost:3000 >/dev/null 2>&1; then
               echo "WebUI is up!"; break; fi; echo "Waiting..."; sleep 5; done
 
-      - name: (TEMP) Skip backend tests – file missing after history cleanup
-        run: echo "Skipping tests for now; will re-enable after relocating test file."
+      - name: Run backend progress-bar integration tests
+        run: |
+          pip install -r tests/requirements-tests.txt
+          pytest -q tests/test_progress_bar_integration.py
 
       - name: Stop and remove container
         run: |
