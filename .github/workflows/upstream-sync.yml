@@ -9,7 +9,6 @@ jobs:
   rebase-build-test:
     runs-on: ubuntu-latest
     env:
-      IMAGE_NAME: ghcr.io/${{ github.repository }}
       TEST_TAG: test
       NIGHTLY_TAG: nightly
     steps:
@@ -37,11 +36,15 @@ jobs:
       - name: Build Docker image with custom patches
         run: |
           docker build -t $IMAGE_NAME:$TEST_TAG open-webui
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
 
       - name: Start container for tests
         run: |
           docker run -d -p 3000:8080 --name webui $IMAGE_NAME:$TEST_TAG
           echo "Container started for testing..."
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
 
       - name: Wait for WebUI to be up
         run: |
@@ -62,9 +65,13 @@ jobs:
         if: success()
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
 
       - name: Push nightly tag
         if: success()
         run: |
           docker tag $IMAGE_NAME:$TEST_TAG $IMAGE_NAME:$NIGHTLY_TAG
-          docker push $IMAGE_NAME:$NIGHTLY_TAG 
+          docker push $IMAGE_NAME:$NIGHTLY_TAG
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }} 
