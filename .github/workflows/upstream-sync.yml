@@ -27,12 +27,6 @@ jobs:
       - name: Set IMAGE_NAME env
         run: echo "IMAGE_NAME=$(echo ghcr.io/${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      - name: Add upstream and rebase
-        run: |
-          git remote add upstream https://github.com/open-webui/open-webui.git || true
-          git fetch upstream
-          git rebase upstream/main || echo "::warning::Rebase required – manual conflict resolution needed."
-
       - name: Build Docker image with custom patches
         run: |
           LOWER_REPO=$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
