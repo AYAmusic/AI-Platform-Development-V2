@@ -18,6 +18,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Ensure git has an identity inside the runner (needed for rebase)
+      - name: Configure git user
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "github-actions[bot]"
+
+      # Compute a lowercase image name for GHCR (registry forbids uppercase)
+      - name: Set IMAGE_NAME env
+        run: echo "IMAGE_NAME=$(echo ghcr.io/${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Add upstream and rebase
         run: |
           git remote add upstream https://github.com/open-webui/open-webui.git || true
