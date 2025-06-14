@@ -1,0 +1,71 @@
+name: Upstream Sync & Test
+
+on:
+  schedule:
+    - cron: "0 4 * * *"   # every night at 04:00 UTC
+  workflow_dispatch:
+
+jobs:
+  rebase-build-test:
+    runs-on: ubuntu-latest
+    env:
+      TEST_TAG: test
+      NIGHTLY_TAG: nightly
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Ensure git has an identity inside the runner (needed for rebase)
+      - name: Configure git user
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "github-actions[bot]"
+
+      # Compute a lowercase image name for GHCR (registry forbids uppercase)
+      - name: Set IMAGE_NAME env
+        run: echo "IMAGE_NAME=$(echo ghcr.io/${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Add upstream and rebase
+        run: |
+          git remote add upstream https://github.com/open-webui/open-webui.git || true
+          git fetch upstream
+          git rebase upstream/main || echo "::warning::Rebase required – manual conflict resolution needed."
+
+      - name: Build Docker image with custom patches
+        run: |
+          LOWER_REPO=$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          echo "LOWER_REPO=$LOWER_REPO" >> $GITHUB_ENV
+          docker build -t ghcr.io/${LOWER_REPO}:${TEST_TAG} open-webui
+
+      - name: Start container for tests
+        run: |
+          docker run -d -p 3000:8080 --name webui ghcr.io/${LOWER_REPO}:${TEST_TAG}
+          echo "Container started for testing..."
+
+      - name: Wait for WebUI to be up
+        run: |
+          for i in {1..30}; do
+            if curl -sSf http://localhost:3000 >/dev/null 2>&1; then
+              echo "WebUI is up!"; break; fi; echo "Waiting..."; sleep 5; done
+
+      - name: Run backend progress-bar integration tests
+        run: |
+          pip install -r requirements.txt pytest pytest-asyncio aiohttp
+          pytest -q test_progress_bar_integration.py
+
+      - name: Stop and remove container
+        run: |
+          docker rm -f webui || true
+
+      - name: Log in to GHCR
+        if: success()
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push nightly tag
+        if: success()
+        run: |
+          docker tag ghcr.io/${LOWER_REPO}:${TEST_TAG} ghcr.io/${LOWER_REPO}:${NIGHTLY_TAG}
+          docker push ghcr.io/${LOWER_REPO}:${NIGHTLY_TAG} 
