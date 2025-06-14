@@ -35,13 +35,13 @@ jobs:
 
       - name: Build Docker image with custom patches
         run: |
-          IMAGE="ghcr.io/$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')"
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
-          docker build -t $IMAGE:$TEST_TAG open-webui
+          LOWER_REPO=$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          echo "LOWER_REPO=$LOWER_REPO" >> $GITHUB_ENV
+          docker build -t ghcr.io/${LOWER_REPO}:${TEST_TAG} open-webui
 
       - name: Start container for tests
         run: |
-          docker run -d -p 3000:8080 --name webui $IMAGE:$TEST_TAG
+          docker run -d -p 3000:8080 --name webui ghcr.io/${LOWER_REPO}:${TEST_TAG}
           echo "Container started for testing..."
 
       - name: Wait for WebUI to be up
@@ -67,5 +67,5 @@ jobs:
       - name: Push nightly tag
         if: success()
         run: |
-          docker tag $IMAGE:$TEST_TAG $IMAGE:$NIGHTLY_TAG
-          docker push $IMAGE:$NIGHTLY_TAG 
+          docker tag ghcr.io/${LOWER_REPO}:${TEST_TAG} ghcr.io/${LOWER_REPO}:${NIGHTLY_TAG}
+          docker push ghcr.io/${LOWER_REPO}:${NIGHTLY_TAG} 
